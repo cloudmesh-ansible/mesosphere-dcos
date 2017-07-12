@@ -5,7 +5,7 @@ agent_list:
 - {{ hostvars[host].ansible_eth0.ipv4.address }}
 {% endfor %}
 
-bootstrap_url: file:///opt/dcos_install_tmp
+bootstrap_url: http://{{ groups['bootstrap'][0] }}:8080
 cluster_name: {{ cluster_name }}
 exhibitor_storage_backend: static
 master_discovery: static
