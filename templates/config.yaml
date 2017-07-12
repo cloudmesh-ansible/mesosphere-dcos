@@ -32,4 +32,4 @@ use_proxy: 'false'
 # ssh_key_path: {{ ansible_user_dir }}/.ssh/id_rsa
 ## above not used due to bug in dcos_generate_config.sh so use default genconf/ssh_key
 
-
+exhibitor_zk_hosts: {{ groups['master'] | join(':2181') ~ ':2181' }}
