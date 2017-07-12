@@ -1,0 +1,9 @@
+#jinja2:lstrip_blocks: True
+#{{ ansible_managed }}
+
+127.0.0.1 localhost.{{ domain_name }} localhost
+::1 localhost.{{ domain_name }} localhost
+
+{% for host in groups['all'] %}
+{{ hostvars[host]['ansible_eth0'].ipv4.address }} {{ hostvars[host].inventory_hostname }}.{{ domain_name }} {{ hostvars[host].inventory_hostname }}
+{% endfor %}

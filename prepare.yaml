@@ -1,0 +1,264 @@
+---
+
+# force fact gathering for all nodes
+- hosts: all
+
+
+- name: Prepare nodes
+  hosts: all
+  become: yes
+  vars:
+    domain_name: foo
+  handlers:
+    - name: Restart Docker
+      service:
+        name: docker
+        state: restarted
+  tasks:
+
+    - name: Update the hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+
+    - name: Set hosts
+      template:
+        src: hosts.j2
+        dest: /etc/hosts
+
+    - name: Ensure SSH
+      service:
+        name: sshd
+        state: started
+        enabled: yes
+
+    - name: Configure SELinux
+      when: ansible_os_family == 'RedHat'
+      selinux:
+        state: disabled
+
+    - name: Enable OverlayFS
+      when: ansible_os_family == 'RedHat'
+      copy:
+        content: overlay
+        dest: /etc/modules-load.d/overlay.conf
+
+    - name: Load OverlayFS kernel module
+      when: ansible_os_family == 'RedHat'
+      modprobe:
+        name: overlay
+        state: present
+
+    - name: Configure yum to use Docker yum repo
+      yum_repository:
+        name: docker
+        description: Docker Repository
+        baseurl: https://yum.dockerproject.org/repo/main/centos/$releasever/
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://yum.dockerproject.org/gpg
+
+    - name: Remove any docker packages
+      when: ansible_os_family == 'Debian'
+      apt:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - docker
+        - docker-engine
+        - docker.io
+
+    - name: Allow apt to use repositories of HTTPS
+      when: ansible_os_family == 'Debian'
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+
+    - name: Add Dockers official GPG key
+      when: ansible_os_family == 'Debian'
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      when: ansible_os_family == 'Debian'
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        update_cache: yes
+
+    - name: Install Docker CE
+      when: ansible_os_family == 'Debian'
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Install Docker
+      when: ansible_os_family == 'RedHat'
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - docker-engine-1.13.1
+        - docker-engine-selinux-1.13.1
+
+    - name: Ensure /etc/docker exists
+      file:
+        path: /etc/docker
+        state: directory
+
+    - name: Configure docker to use devicemapper
+      copy:
+        content: >-
+          {
+            "storage-driver": "overlay"
+          }
+        dest: /etc/docker/daemon.json
+        mode: 0600
+        owner: root
+        group: root
+      notify: Restart Docker
+
+    - name: Disable sudo password prompts
+      lineinfile:
+        path: /etc/sudoers
+        line: "sudo ALL=(ALL) NOPASSWD: ALL"
+        state: present
+        validate: visudo -c -f %s
+
+    - name: Ensure that groups are setup
+      group:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - nogroup
+        - docker
+
+
+- name: Prepare bootstrap nodes
+  hosts: bootstrap
+  become: no
+  tasks:
+
+    - name: Generate ssh key
+      shell: ssh-keygen -b 4096 -t rsa -f ~/.ssh/id_rsa -q -N ""
+      args: 
+        creates: "/home/{{ ansible_user_id }}/.ssh/id_rsa"
+
+    - name: Get public key
+      shell: cat ~/.ssh/id_rsa.pub
+      register: bootstrap_pubkey
+
+
+- name: Allow bootstrap access
+  hosts: cluster
+  become: no
+  tasks:
+
+    - name: Allow bootstrap node to ssh in
+      authorized_key:
+        user: "{{ ansible_user_id }}"
+        key: "{{ hostvars[groups['bootstrap'][0]].bootstrap_pubkey.stdout }}"
+        state: present
+
+
+- name: Prepare cluster nodes
+  hosts: cluster
+  become: yes
+  tasks:
+
+    - name: install utilities
+      when: ansible_os_family == 'Debian'
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - tar
+        - xz-utils
+        - curl
+        - ipset
+        - unzip
+
+    - name: install utilities
+      when: ansible_os_family == 'RedHat'
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - tar
+        - xz
+        - curl
+        - ipset
+        - unzip
+
+    - name: Ensure groups
+      group:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - nogroup
+        - docker
+
+  
+
+
+- name: Prepare for DCOS configuration
+  hosts: bootstrap
+  become: no
+  tasks:
+
+    - file:
+        path: "{{ ansible_user_dir }}/genconf"
+        state: directory
+
+    - template:
+        src: config.yaml
+        dest: "{{ ansible_user_dir }}/genconf/config.yaml"
+
+    - copy:
+        src: ip-detect
+        dest: "{{ ansible_user_dir }}/genconf/ip-detect"
+
+    - get_url:
+        url: https://downloads.dcos.io/dcos/stable/dcos_generate_config.sh
+        dest: "{{ ansible_user_dir }}/dcos_generate_config.sh"
+        checksum: sha256:a0dffaedeb4587342d9b93246a79f5bd2608439bf81a47c9c776602fdf79dc3d
+
+    - name: Workaround bug in dcos_generate_config.sh - ssh_key_path
+      file:
+        path: "{{ ansible_user_dir }}/genconf/ssh_key"
+        src:  "{{ ansible_user_dir }}/.ssh/id_rsa"
+        state: hard
+        
+    - name: Validate config
+      shell: sudo bash dcos_generate_config.sh --validate-config && touch .dcos_generate_config.sh.validate
+      args:
+        chdir: "{{ ansible_user_dir }}"
+        creates: .dcos_generate_config.sh.validate
+
+    - name: Generate config
+      shell: sudo bash dcos_generate_config.sh && touch .dcos_generate_config.sh
+      args:
+        chdir: "{{ ansible_user_dir }}"
+        creates: .dcos_generate_config.sh
+
+    - name: Run the bootstrap webserver
+      shell: sudo docker run -d -p 8080:80 -v $PWD/genconf/serve:/usr/share/nginx/html nginx && touch .bootstrap_nginx
+      args:
+        chdir: "{{ ansible_user_dir }}"
+        creates: .bootstrap_nginx
+      
+# curl -O http://mesos-0:8080/dcos_install.sh
+# sed -i 's|file:///opt/dcos_install_tmp|http://mesos-0:8080|g' dcos_install.sh
+
+# - name: Deploy Master
+#   hosts: master
+#   become: yes
+#   tasks:
+
+#     - get_url:
+#         url: "{{ groups

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+test -d host_vars || mkdir -p host_vars
+
+IPS=$(aws ec2 describe-instances --filters Name=instance-state-name,Values=running  | grep PublicIpAddress | grep -o '[0-9.]*')
+
+i=0
+for ip in $IPS; do
+    echo "ansible_ssh_host: $ip" > host_vars/mesos-$i.yaml
+    i=$(expr $i + 1)
+done
