@@ -1,6 +1,7 @@
 
 [cluster:children]
 master
+public-agent
 agent
 
 [bootstrap]
