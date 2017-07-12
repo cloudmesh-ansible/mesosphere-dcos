@@ -1,0 +1,32 @@
+---
+
+- name: Install the master nodes
+  hosts: master
+  become: yes
+  tasks:
+
+    - shell: bash dcos_install.sh master && touch .dcos_install.sh--master
+      args:
+        chdir: /root
+        creates: .dcos_install.sh--master
+
+
+- name: Install the public agent nodes
+  hosts: public-agent
+  become: yes
+  tasks:
+
+    - shell: bash dcos_install.sh slave_public && touch .dcos_install.sh--slave_public
+      args:
+        chdir: /root
+        creates: .dcos_install.sh--slave_public
+
+- name: Install the agent nodes
+  hosts: agent
+  become: yes
+  tasks:
+
+    - shell: bash dcos_install.sh slave && touch .dcos_install.sh--slave
+      args:
+        chdir: /root
+        creates: .dcos_install.sh--slave
