@@ -1,8 +1,11 @@
 ===========
- Objective
+ About
 ===========
 
-Deploy Mesosphere DC/OS onto a cluster
+This repository provides Ansible playbook to deploy a Mesosphere DC/OS
+cluster.  Developed and tested against CentOS 7 nodes running on EC2
+following the `Advanced Installation Guide
+<https://dcos.io/docs/1.9/installing/custom/advanced/>`_.
 
 
 ==============
