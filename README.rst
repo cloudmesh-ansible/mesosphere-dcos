@@ -7,6 +7,33 @@ cluster.  Developed and tested against CentOS 7 nodes running on EC2
 following the `Advanced Installation Guide
 <https://dcos.io/docs/1.9/installing/custom/advanced/>`_.
 
+The basic approach:
+
+- setup a bootstrap node with an initial configuration describing the mesos cluster.
+- the mesos master, public agent, and private agents are installed using the configuration from the bootstrap node.
+- access the cluster in a web browser (ip address of master on port 80) to login (using google account)
+
+The bootstrap node is **not** part of the cluster.
+
+Nodes are grouped as bootstrap, master, public or private agent in the
+Ansible inventory file.
+
+
+After the DCOS is deployed you can install packages from the
+"Universe" tab. I was able to successfully *deploy* (but haven't used)
+the following
+
+- chronos
+- hdfs
+- marathon
+- spark
+
+
+I've tested with the following number of nodes (including bootstrap)
+
+- 6
+- 16
+
 
 ==============
  Requirements
