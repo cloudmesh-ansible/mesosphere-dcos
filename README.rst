@@ -20,13 +20,22 @@ Ansible inventory file.
 
 
 After the DCOS is deployed you can install packages from the
-"Universe" tab. I was able to successfully *deploy* (but haven't used)
+"Universe" tab. I was able to *deploy* (but haven't used)
 the following
 
+- arangodb3
 - chronos
+- flink
+- grafana
 - hdfs
 - marathon
+- mongodb
+- mr-redis
+- nifi
+- openldap
+- registry
 - spark
+- zeppelin
 
 
 I've tested with the following number of nodes (including bootstrap)
