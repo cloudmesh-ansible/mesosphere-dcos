@@ -48,6 +48,10 @@ Python, Ansible, Boto, awscli. See `<requirements.txt>`_ for the frozen set and
 ===========
 
 #. start a cluster (see `<ec2.yaml>`_) having 6 nodes
+
+   Note: this is hacked to work on my environment. You'll likely need
+   to change the parameters to the ec2 module.
+
 #. generate the inventory file
 
    Set ``ansible_ssh_host`` in each

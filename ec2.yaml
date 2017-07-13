@@ -10,7 +10,7 @@
     centos7_ami: ami-ae7bfdb8
   tasks:
 
-  - ec2:
+  - ec2:                        # FIXME: this works on my EC2 account. You should adjust for yours
       key_name: gambit
       instance_type: t2.large
       image: "{{ centos7_ami }}"
