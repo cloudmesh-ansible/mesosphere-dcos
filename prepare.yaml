@@ -264,15 +264,3 @@
     - get_url:
         url: http://mesos-0:8080/dcos_install.sh # FIXME hardcoded url
         dest: "/root/dcos_install.sh"
-
-
-# curl -O http://mesos-0:8080/dcos_install.sh
-# sed -i 's|file:///opt/dcos_install_tmp|http://mesos-0:8080|g' dcos_install.sh
-
-# - name: Deploy Master
-#   hosts: master
-#   become: yes
-#   tasks:
-
-#     - get_url:
-#         url: "{{ groups
