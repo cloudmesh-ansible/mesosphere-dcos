@@ -12,7 +12,7 @@ following the `Advanced Installation Guide
  Requirements
 ==============
 
-Python, Ansible, Boto. See `<requirements.txt>`_ for the frozen set and
+Python, Ansible, Boto, awscli. See `<requirements.txt>`_ for the frozen set and
 `<requirements-open.txt>`_ for the open set. Use a virtualenv.
 
 
@@ -22,6 +22,13 @@ Python, Ansible, Boto. See `<requirements.txt>`_ for the frozen set and
 
 #. start a cluster (see `<ec2.yaml>`_) having 6 nodes
 #. generate the inventory file
+
+   Set ``ansible_ssh_host`` in each
+   of the host files ``host_vars/mesos-0.yaml``,
+   ``host_vars/mesos-1.yaml``, etc.
+
+   You can use the `<mk-inventory>`_
+
 #. run `<prepare.yaml>`_ to prepare the nodes
 #. run `<dcos.yaml>`_ to deploy DCOS
 #. go the the IP address of the master node and login
